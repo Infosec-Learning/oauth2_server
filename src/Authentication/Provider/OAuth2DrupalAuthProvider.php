@@ -180,10 +180,21 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
       if ($this->time->getRequestTime() > ($info['expires'] + $oauth2_server_settings['advanced_settings']['access_lifetime'])) {
         throw new \Exception("The token is expired.");
       }
-      return $this->entityTypeManager->getStorage('user')->load($info['user_id']);
+      $account = $this->entityTypeManager->getStorage('user')
+        ->load($info['user_id']);
+      $this->loggerFactory->get('oauth2_server')
+        ->notice('Session opened for %name via @client.', [
+          '%name' => $account->getAccountName(),
+          '@client' => $info['client_id'],
+        ]);
+      return $account;
     }
     catch (\Exception $e) {
-      $this->loggerFactory->get('access denied')->warning($e->getMessage());
+      $this->loggerFactory->get('oauth2_server')
+        ->warning('Access denied: @code @message', [
+          '@code' => $e->getCode(),
+          '@message' => $e->getMessage(),
+        ]);
       throw new AccessDeniedHttpException($e->getMessage(), $e);
     }
   }
