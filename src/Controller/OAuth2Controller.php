@@ -5,6 +5,8 @@ namespace Drupal\oauth2_server\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Url;
+use Drupal\Core\Site\Settings;
+use Drupal\Component\Utility\Crypt;
 use OAuth2\HttpFoundationBridge\Request as BridgeRequest;
 use OAuth2\HttpFoundationBridge\Response as BridgeResponse;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -14,6 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Drupal\oauth2_server\OAuth2StorageInterface;
 use Drupal\oauth2_server\ScopeUtility;
 use Drupal\oauth2_server\Utility;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * Class OAuth2 Controller.
@@ -268,6 +271,108 @@ class OAuth2Controller extends ControllerBase {
     $certificates = [];
     $certificates[] = $keys['public_key'];
     return new JsonResponse($certificates);
+  }
+
+  /**
+   * Json Web Token (JWK).
+   *
+   * Output the public key as a JSON blob in JWK format, for ease of
+   * consumption by clients that support it.
+   *
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The route match object.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   The response object.
+   *
+   * @see https://tools.ietf.org/html/rfc7517
+   */
+  public function jwk(RouteMatchInterface $route_match, Request $request) {
+    $keys = Utility::getKeys();
+
+    $cert = openssl_x509_read($keys['public_key']);
+    $publicKey = openssl_get_publickey($cert);
+    openssl_x509_free($cert);
+    $keyDetails = openssl_pkey_get_details($publicKey);
+    openssl_pkey_free($publicKey);
+    $jwk['e'] = base64_encode($keyDetails['rsa']['e']);
+    $jwk['n'] = base64_encode($keyDetails['rsa']['n']);
+    $jwk['mod'] = self::base64urlEncode($keyDetails['rsa']['n']);
+    $jwk['exp'] = self::base64urlEncode($keyDetails['rsa']['e']);
+    $jwk['x5c'][] = self::base64urlEncode(self::pem2der($keys['public_key']));
+    $jwk['kty'] = 'RSA';
+    $jwk['use'] = "sig";
+    $jwk['alg'] = "RS256";
+    $jwk['kid'] = Crypt::hmacbase64(
+      \Drupal::state()->get('oauth2_server.next_certificate_id', 0),
+      Settings::getHashSalt()
+    );
+
+    $response = ["keys" => [$jwk]];
+    if (openssl_error_string()) {
+      $this->logger->error("Error: @message", [
+        "@code" => openssl_error_string(),
+      ]);
+      throw new HttpException(522, "SSL subsytem failure detected.");
+    }
+
+    return new JsonResponse($response, 200);
+  }
+
+  /**
+   * Generates a token based on $value, the token seed, and the private key.
+   *
+   * @param string $seed
+   *   The per-session token seed.
+   * @param string $value
+   *   (optional) An additional value to base the token on.
+   *
+   * @return string
+   *   A 43-character URL-safe token for validation, based on the token seed,
+   *   the hash salt provided by Settings::getHashSalt(), and the
+   *   'drupal_private_key' configuration variable.
+   *
+   * @see \Drupal\Core\Site\Settings::getHashSalt()
+   */
+  protected function computeToken($seed, $value = '') {
+    return Crypt::hmacBase64($value, $seed . $this->privateKey->get() . Settings::getHashSalt());
+  }
+
+  /**
+   * Convert a PEM encoded to DER encoded certificate.
+   *
+   * @param string $pem
+   *   The PEM encoded certificate.
+   *
+   * @return string|bool
+   *   The DER encoded certificate or false.
+   *
+   * @see http://php.net/manual/en/ref.openssl.php#74188
+   */
+  public static function pem2der($pem) {
+    $begin = "CERTIFICATE-----";
+    $end = "-----END";
+    $pem = substr($pem, strpos($pem, $begin) + strlen($begin));
+    $pem = substr($pem, 0, strpos($pem, $end));
+    $der = base64_decode($pem);
+    return $der;
+  }
+
+  /**
+   * Base64 URL encoding.
+   *
+   * @param string $data
+   *   The data to be encoded.
+   *
+   * @return string
+   *   The Base64 URL encoded data.
+   *
+   * @see http://php.net/manual/en/function.base64-encode.php#103849
+   */
+  public static function base64urlEncode($data) {
+    return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
   }
 
 }

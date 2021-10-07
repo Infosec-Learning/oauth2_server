@@ -31,6 +31,18 @@ oauth2_server.certificates:
      _controller: 'Drupal\oauth2_server\Controller\OAuth2Controller::certificates'
   requirements:
     _access: 'TRUE'
+oauth2_server.jwk:
+  path: '/oauth2/jwk'
+  defaults:
+     _controller: 'Drupal\oauth2_server\Controller\OAuth2Controller::jwk'
+  requirements:
+    _access: 'TRUE'
+oauth2_server.openid_configuration:
+  path: '/.well-known/openid-configuration'
+  defaults:
+    _controller: 'Drupal\oauth2_server\Controller\OAuth2Controller::openidConfiguration'
+  requirements:
+    _access: 'TRUE'
 
 # Servers
 oauth2_server.overview:

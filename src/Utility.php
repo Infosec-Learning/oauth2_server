@@ -95,7 +95,7 @@ class Utility {
    */
   public static function getKeys() {
     $keys = \Drupal::state()->get('oauth2_server.keys', FALSE);
-    if (!$keys) {
+    if (empty($keys['private_key']) || empty($keys['public_key'])) {
       $keys = static::generateKeys();
       \Drupal::state()->set('oauth2_server.keys', $keys);
     }
@@ -117,8 +117,9 @@ class Utility {
    */
   public static function generateKeys() {
     $module_path = drupal_get_path('module', 'oauth2_server');
+    $module_realpath = \Drupal::service('file_system')->realpath($module_path);
     $config = [
-      'config' => DRUPAL_ROOT . '/' . $module_path . '/oauth2_server.openssl.cnf',
+      'config' => $module_realpath . DIRECTORY_SEPARATOR . 'oauth2_server.openssl.cnf',
     ];
 
     // Generate a private key.
