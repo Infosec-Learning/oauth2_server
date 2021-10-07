@@ -40,7 +40,7 @@ oauth2_server.jwk:
 oauth2_server.openid_configuration:
   path: '/.well-known/openid-configuration'
   defaults:
-    _controller: 'Drupal\oauth2_server\Controller\OAuth2Controller::openidConfiguration'
+    _controller: 'Drupal\oauth2_server\Controller\OpenidConnectDiscoveryController::configuration'
   requirements:
     _access: 'TRUE'
 
