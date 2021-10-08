@@ -75,7 +75,14 @@ class OAuth2Controller extends ControllerBase {
     $bridgeRequest = BridgeRequest::createFromRequest($duplicated_request);
 
     if ($this->currentUser()->isAnonymous()) {
-      $_SESSION['oauth2_server_authorize'] = $bridgeRequest;
+      // A user may be redirected to the authorize request a second time
+      // but without parameters. For example when a user has to register
+      // rather than login. In such a case we have already stored a valid
+      // request and don't want to overwrite it with an invalid request.
+      // In case a user visits the authorize link directly this changes nothing.
+      if ($bridgeRequest->get('client_id')) {
+        $_SESSION['oauth2_server_authorize'] = $bridgeRequest;
+      }
       $url = new Url('user.login', [], ['query' => ['destination' => Url::fromRoute('oauth2_server.authorize')->toString()]]);
       $url->setAbsolute(TRUE);
       return new RedirectResponse($url->toString());
