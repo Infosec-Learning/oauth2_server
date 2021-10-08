@@ -82,7 +82,7 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
    */
   public static function create(array $values = []) {
     if (isset($values['server_id']) && isset($values['scope_id'])) {
-      $values['id'] = $values['server_id'] . '_' . $values['scope_id'];
+      $values['id'] = $values['server_id'] . '_' . self::scopeToMachineName($values['scope_id']);
     }
     return parent::create($values);
   }
@@ -92,7 +92,7 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
    */
   public function id() {
     if (!empty($this->server_id) && !empty($this->scope_id)) {
-      return $this->server_id . '_' . $this->scope_id;
+      return $this->server_id . '_' . self::scopeToMachineName($this->scope_id);
     }
     return isset($this->id) ? $this->id : NULL;
   }
@@ -139,7 +139,7 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
    */
   public function __construct(array $values, $entity_type) {
     if (isset($values['server_id']) && isset($values['scope_id'])) {
-      $values['id'] = $values['server_id'] . '_' . $values['scope_id'];
+      $values['id'] = $values['server_id'] . '_' . self::scopeToMachineName($values['scope_id']);
     }
     parent::__construct($values, $entity_type);
   }
@@ -150,6 +150,23 @@ class Scope extends ConfigEntityBase implements ScopeInterface {
   public function __sleep() {
     $this->server = NULL;
     parent::__sleep();
+  }
+
+  /**
+   * Converts a scope name to a valid Drupal machine name.
+   *
+   * E.g. user:auth:login is transformed to user_auth_login.
+   *
+   * @param string $scope
+   *   The name of the scope to transform.
+   *
+   * @return string
+   *   A valid Drupal machine name.
+   */
+  public static function scopeToMachineName(string $scope) : string {
+    // Replace any non lowercase letter, number or underscore character by an
+    // underscore.
+    return preg_replace('/[^a-z0-9_]/', '_', mb_strtolower($scope));
   }
 
 }
