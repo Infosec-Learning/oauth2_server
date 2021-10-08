@@ -10,6 +10,7 @@ use Drupal\Core\Password\PasswordInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\user\UserInterface;
 use Drupal\file\Entity\File;
+use Drupal\Core\Url;
 
 /**
  * Provides Drupal OAuth2 storage for the library.
@@ -1003,7 +1004,15 @@ class OAuth2Storage implements OAuth2StorageInterface {
     if ($account->user_picture && $account->user_picture->target_id) {
       $file = File::load($account->user_picture->target_id);
       if ($file) {
-        return $file->toUrl('canonical', ['absolute' => TRUE]);
+        if ($file->hasLinkTemplate('canonical')) {
+          return $file->toUrl()->setAbsolute(TRUE);
+        }
+        elseif (
+          $file->getEntityTypeId() === 'file'
+          && $file->access('download')
+        ) {
+          return Url::fromUri(file_create_url($file->getFileUri()))->toString();
+        }
       }
     }
     return NULL;
