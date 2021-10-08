@@ -67,6 +67,10 @@ class ScopeForm extends EntityForm {
       '#default_value' => !$scope->isNew() ? $scope->scope_id : '',
       '#maxlength' => 50,
       '#required' => TRUE,
+      '#machine_name' => [
+        'replace_pattern' => '[^a-z0-9_:]+',
+      ],
+      '#description' => $this->t('A unique name for this item. It must only contain lowercase letters, numbers, underscores, and semicolons.'),
     ];
     $form['server_id'] = [
       '#type' => 'value',
