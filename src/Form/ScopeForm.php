@@ -69,6 +69,7 @@ class ScopeForm extends EntityForm {
       '#required' => TRUE,
       '#machine_name' => [
         'replace_pattern' => '[^a-z0-9_:]+',
+        'exists' => [$this->storage, 'load'],
       ],
       '#description' => $this->t('A unique name for this item. It must only contain lowercase letters, numbers, underscores, and semicolons.'),
     ];
