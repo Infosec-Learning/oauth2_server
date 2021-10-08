@@ -11,6 +11,8 @@ oauth2_server.token:
      _controller: 'Drupal\oauth2_server\Controller\OAuth2Controller::token'
   requirements:
     _permission: 'use oauth2 server'
+  options:
+    _auth: ['cookie', 'basic_auth']
 oauth2_server.tokens:
   path: '/oauth2/tokens/{oauth2_server_token}'
   defaults:
