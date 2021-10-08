@@ -109,10 +109,10 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
     // and if the client adds the access token to the request-body using the
     // "access_token" parameter.
     // See https://tools.ietf.org/html/rfc6750#section-2.2
-    if (trim($request->headers->get('content-type')) == 'application/x-www-form-urlencoded' &&
-        empty($request->query->get('access_token')) &&
-        trim($request->getMethod()) !== 'GET' &&
-        stripos(trim($request->getContent()), 'access_token') !== FALSE) {
+    if (trim($request->headers->get('content-type')) == 'application/x-www-form-urlencoded'
+        && empty($request->query->get('access_token'))
+        && trim($request->getMethod()) !== 'GET'
+        && preg_match("/\baccess_token\b/", $request->getContent()) === 1) {
       $method[] = t('Form-Encoded Body Parameter');
     }
 
@@ -120,8 +120,8 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
     // the client adds the access token to the request URI query component
     // using the "access_token" parameter.
     // See https://tools.ietf.org/html/rfc6750#section-2.3
-    if (!empty($request->get('access_token')) &&
-        stripos(trim($request->getContent()), 'access_token') === FALSE) {
+    if (!empty($request->get('access_token'))
+        && preg_match("/\baccess_token\b/", $request->getContent()) === 0) {
       $method[] = t('URI Query Parameter');
     }
 
@@ -129,7 +129,8 @@ class OAuth2DrupalAuthProvider implements AuthenticationProviderInterface {
     // resource requests to resource servers.
     // Clients MUST NOT use more than one method to transmit the token in each
     // request.
-    if (!empty($method) && count($method) == 1) {
+    if (!empty($method)
+        && count($method) == 1) {
       return TRUE;
     }
     return FALSE;
