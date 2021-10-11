@@ -2,6 +2,7 @@
 
 namespace Drupal\oauth2_server\Form;
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Form\FormStateInterface;
@@ -139,6 +140,38 @@ class ClientForm extends EntityForm {
       '#required' => TRUE,
       '#weight' => -10,
     ];
+    $form['logo_uri'] = [
+      '#title' => $this->t('Logo URI'),
+      '#type' => 'textfield',
+      '#default_value' => $client->logo_uri,
+      '#description' => $this->t('A URL that references a logo for the Client application. If present, the server SHOULD display this image to the End-User during approval.'),
+      '#required' => FALSE,
+      '#weight' => -10,
+    ];
+    $form['client_uri'] = [
+      '#title' => $this->t('Client URI'),
+      '#type' => 'textfield',
+      '#default_value' => $client->client_uri,
+      '#description' => $this->t('The	URL of the home page of the Client. If present, the server SHOULD display this URL to the End-User in a followable fashion.'),
+      '#required' => FALSE,
+      '#weight' => -10,
+    ];
+    $form['policy_uri'] = [
+      '#title' => $this->t('Policy URI'),
+      '#type' => 'textfield',
+      '#default_value' => $client->policy_uri,
+      '#description' => $this->t('A	URL that the Relying Party Client provides to the End-User to read about the how the profile data will be used. The OpenID Provider SHOULD display this URL to the End-User if it is given.'),
+      '#required' => FALSE,
+      '#weight' => -10,
+    ];
+    $form['tos_uri'] = [
+      '#title' => $this->t('Terms of service URI'),
+      '#type' => 'textfield',
+      '#default_value' => $client->tos_uri,
+      '#description' => $this->t("A URL that the Relying Party Client provides to the End-User to read about the Relying Party's terms of service. The OpenID Provider SHOULD display this URL to the End-User if it is given."),
+      '#required' => FALSE,
+      '#weight' => -10,
+    ];
     $form['automatic_authorization'] = [
       '#title' => $this->t('Automatically authorize this client'),
       '#type' => 'checkbox',
@@ -253,6 +286,26 @@ class ClientForm extends EntityForm {
       }
     }
     $form_state->setValue('client_secret', $client_secret);
+
+    $logo_uri = $form_state->getValue('logo_uri');
+    if (!empty($logo_uri) && !UrlHelper::isValid($logo_uri, TRUE)) {
+      $form_state->setErrorByName('logo_uri', $this->t('The url is not valid. An absolute url has to be provided.'));
+    }
+
+    $client_uri = $form_state->getValue('client_uri');
+    if (!empty($client_uri) && !UrlHelper::isValid($client_uri, TRUE)) {
+      $form_state->setErrorByName('client_uri', $this->t('The url is not valid. An absolute url has to be provided.'));
+    }
+
+    $policy_uri = $form_state->getValue('policy_uri');
+    if (!empty($policy_uri) && !UrlHelper::isValid($policy_uri, TRUE)) {
+      $form_state->setErrorByName('policy_uri', $this->t('The url is not valid. An absolute url has to be provided.'));
+    }
+
+    $tos_uri = $form_state->getValue('tos_uri');
+    if (!empty($tos_uri) && !UrlHelper::isValid($tos_uri, TRUE)) {
+      $form_state->setErrorByName('tos_uri', $this->t('The url is not valid. An absolute url has to be provided.'));
+    }
   }
 
   /**
