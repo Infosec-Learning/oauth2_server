@@ -3,7 +3,9 @@
 namespace Drupal\oauth2_server\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Logger\LoggerChannelFactory;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\State\State;
 use Drupal\Core\Url;
 use Drupal\Core\Site\Settings;
 use Drupal\Component\Utility\Crypt;
@@ -26,20 +28,44 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class OAuth2Controller extends ControllerBase {
 
   /**
-   * The OAuth2Storage.
+   * The OAuth2Storage service.
    *
    * @var \Drupal\oauth2_server\OAuth2StorageInterface
    */
   protected $storage;
 
   /**
-   * Constructs a new \Drupal\oauth2_server\Controller\OAuth2Controller object.
+   * The state service.
+   *
+   * @var \Drupal\Core\State\State
+   */
+  protected $state;
+
+  /**
+   * The logger channel.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannel|\Drupal\Core\Logger\LoggerChannelInterface
+   */
+  protected $logger;
+
+  /**
+   * The class constructor.
    *
    * @param \Drupal\oauth2_server\OAuth2StorageInterface $oauth2_storage
-   *   The OAuth2 storage object.
+   *   The oauth2 storage service.
+   * @param \Drupal\Core\State\State $state
+   *   The state service.
+   * @param \Drupal\Core\Logger\LoggerChannelFactory $logger_factory
+   *   The logger factory service.
    */
-  public function __construct(OAuth2StorageInterface $oauth2_storage) {
+  public function __construct(
+      OAuth2StorageInterface $oauth2_storage,
+      State $state,
+      LoggerChannelFactory $logger_factory
+  ) {
     $this->storage = $oauth2_storage;
+    $this->state = $state;
+    $this->logger = $logger_factory->get('oauth2_server');
   }
 
   /**
@@ -47,7 +73,9 @@ class OAuth2Controller extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('oauth2_server.storage')
+      $container->get('oauth2_server.storage'),
+      $container->get('state'),
+      $container->get('logger.factory')
     );
   }
 
@@ -301,8 +329,10 @@ class OAuth2Controller extends ControllerBase {
 
     $cert = openssl_x509_read($keys['public_key']);
     $publicKey = openssl_get_publickey($cert);
+    // @todo This function has been deprecated in PHP 8.0.0 and can then be removed.
     openssl_x509_free($cert);
     $keyDetails = openssl_pkey_get_details($publicKey);
+    // @todo This function has been deprecated in PHP 8.0.0 and can then be removed.
     openssl_pkey_free($publicKey);
     $jwk['e'] = base64_encode($keyDetails['rsa']['e']);
     $jwk['n'] = base64_encode($keyDetails['rsa']['n']);
@@ -313,7 +343,7 @@ class OAuth2Controller extends ControllerBase {
     $jwk['use'] = "sig";
     $jwk['alg'] = "RS256";
     $jwk['kid'] = Crypt::hmacbase64(
-      \Drupal::state()->get('oauth2_server.next_certificate_id', 0),
+      $this->state()->get('oauth2_server.next_certificate_id', 0),
       Settings::getHashSalt()
     );
 
