@@ -65,6 +65,7 @@ class ClientForm extends EntityForm {
    */
   public function form(array $form, FormStateInterface $form_state) {
     $client = $this->entity;
+    $form_state->setTemporaryValue('client_secret', $client->client_secret);
 
     $server = $form_state->get('oauth2_server');
     if (!$server) {
@@ -94,12 +95,6 @@ class ClientForm extends EntityForm {
         'exists' => [$this, 'exists'],
       ],
     ];
-    $form['require_client_secret'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Require a client secret'),
-      '#default_value' => !empty($client->isNew()) || !empty($client->client_secret),
-      '#weight' => -35,
-    ];
     $grant_types = array_filter($client->settings['override_grant_types'] ? $client->settings['grant_types'] : $server->settings['grant_types']);
     $jwt_bearer_enabled = isset($grant_types['urn:ietf:params:oauth:grant-type:jwt-bearer']);
     $form['client_secret'] = [
@@ -108,18 +103,9 @@ class ClientForm extends EntityForm {
       '#weight' => -30,
       // Hide this field if only JWT bearer is enabled, since it doesn't use it.
       '#access' => (count($grant_types) != 1 || !$jwt_bearer_enabled),
-      '#states' => [
-        'required' => [
-          'input[name="require_client_secret"]' => ['checked' => TRUE],
-        ],
-        'visible' => [
-          'input[name="require_client_secret"]' => ['checked' => TRUE],
-        ],
-      ],
     ];
     if (!empty($client->client_secret)) {
-      $form['client_secret']['#description'] = $this->t('Leave this blank, and leave "Require a client secret" checked, to use the previously saved secret.');
-      unset($form['client_secret']['#states']['required']);
+      $form['client_secret']['#description'] = $this->t('Leave this blank to keep using the previously saved secret.');
     }
     $form['public_key'] = [
       '#title' => $this->t('Public key'),
@@ -268,24 +254,22 @@ class ClientForm extends EntityForm {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    parent::validateForm($form, $form_state);
-
-    $client_secret = '';
-    if (!empty($form_state->getValue('require_client_secret'))) {
-      if (!empty($form_state->getValue('client_secret'))) {
-        $client_secret = $this->entity->hashClientSecret($form_state->getValue('client_secret'));
-        if (!$client_secret) {
-          throw new \Exception("Failed to hash client secret");
-        }
-      }
-      elseif (!empty($this->entity->client_secret)) {
-        $client_secret = $this->entity->client_secret;
+    // Store a new secret if provided.
+    if ($client_secret = $form_state->getValue('client_secret')) {
+      $hashed_client_secret = $this->entity->hashClientSecret($client_secret);
+      if (!$client_secret) {
+        $form_state->setErrorByName('client_secret', $this->t('Could not hash the client secret, please provide a different one.'));
       }
       else {
-        $form_state->setErrorByName('client_secret', $this->t('A client secret is required.'));
+        // Hash the new secret for storage.
+        $form_state->setValue('client_secret', $hashed_client_secret);
       }
     }
-    $form_state->setValue('client_secret', $client_secret);
+    // Keep the previously saved secret if field is left empty.
+    else {
+      $client_secret = $form_state->getTemporaryValue('client_secret');
+      $form_state->setValue('client_secret', $client_secret);
+    }
 
     $logo_uri = $form_state->getValue('logo_uri');
     if (!empty($logo_uri) && !UrlHelper::isValid($logo_uri, TRUE)) {
