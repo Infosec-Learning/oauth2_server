@@ -4,6 +4,7 @@ namespace Drupal\oauth2_server\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Logger\LoggerChannelFactory;
+use Drupal\Core\PrivateKey;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\State\State;
 use Drupal\Core\Url;
@@ -42,6 +43,13 @@ class OAuth2Controller extends ControllerBase {
   protected $state;
 
   /**
+   * The private key service.
+   *
+   * @var \Drupal\Core\PrivateKey
+   */
+  protected $privateKey;
+
+  /**
    * The logger channel.
    *
    * @var \Drupal\Core\Logger\LoggerChannel|\Drupal\Core\Logger\LoggerChannelInterface
@@ -61,10 +69,12 @@ class OAuth2Controller extends ControllerBase {
   public function __construct(
       OAuth2StorageInterface $oauth2_storage,
       State $state,
+      PrivateKey $private_key,
       LoggerChannelFactory $logger_factory
   ) {
     $this->storage = $oauth2_storage;
     $this->state = $state;
+    $this->privateKey = $private_key;
     $this->logger = $logger_factory->get('oauth2_server');
   }
 
@@ -75,6 +85,7 @@ class OAuth2Controller extends ControllerBase {
     return new static(
       $container->get('oauth2_server.storage'),
       $container->get('state'),
+      $container->get('private_key'),
       $container->get('logger.factory')
     );
   }
