@@ -387,8 +387,8 @@ class OAuth2Controller extends ControllerBase {
     $keyDetails = openssl_pkey_get_details($publicKey);
     // @todo This function has been deprecated in PHP 8.0.0 and can then be removed.
     openssl_pkey_free($publicKey);
-    $jwk['e'] = base64_encode($keyDetails['rsa']['e']);
-    $jwk['n'] = base64_encode($keyDetails['rsa']['n']);
+    $jwk['e'] = self::base64urlEncode($keyDetails['rsa']['e']);
+    $jwk['n'] = self::base64urlEncode($keyDetails['rsa']['n']);
     $jwk['mod'] = self::base64urlEncode($keyDetails['rsa']['n']);
     $jwk['exp'] = self::base64urlEncode($keyDetails['rsa']['e']);
     $jwk['x5c'][] = self::base64urlEncode(self::pem2der($keys['public_key']));
