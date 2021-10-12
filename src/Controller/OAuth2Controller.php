@@ -402,12 +402,12 @@ class OAuth2Controller extends ControllerBase {
     );
 
     $response = ["keys" => [$jwk]];
-    if (openssl_error_string()) {
-      $this->logger->error("Error: @message", [
-        "@code" => openssl_error_string(),
-      ]);
-      throw new HttpException(522, "SSL subsytem failure detected.");
-    }
+//    if (openssl_error_string()) {
+//      $this->logger->error("Error: @message", [
+//        "@code" => openssl_error_string(),
+//      ]);
+//      throw new HttpException(522, "SSL subsytem failure detected.");
+//    }
 
     return new JsonResponse($response, 200);
   }
