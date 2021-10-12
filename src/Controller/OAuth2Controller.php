@@ -391,7 +391,8 @@ class OAuth2Controller extends ControllerBase {
     $jwk['n'] = self::base64urlEncode($keyDetails['rsa']['n']);
     $jwk['mod'] = self::base64urlEncode($keyDetails['rsa']['n']);
     $jwk['exp'] = self::base64urlEncode($keyDetails['rsa']['e']);
-    $jwk['x5c'][] = self::base64urlEncode(self::pem2der($keys['public_key']));
+    // @see https://datatracker.ietf.org/doc/html/rfc7517#section-4.7
+    $jwk['x5c'][] = base64_encode(self::pem2der($keys['public_key']));
     $jwk['kty'] = 'RSA';
     $jwk['use'] = "sig";
     $jwk['alg'] = "RS256";
