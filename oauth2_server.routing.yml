@@ -27,6 +27,12 @@ oauth2_server.userinfo:
     _auth: [ 'oauth2' ]
   requirements:
     _permission: 'use oauth2 server'
+oauth2_server.revoke:
+  path: '/oauth2/revoke'
+  defaults:
+    _controller: 'Drupal\oauth2_server\Controller\OAuth2Controller::revoke'
+  requirements:
+    _permission: 'use oauth2 server'
 oauth2_server.certificates:
   path: '/oauth2/certificates'
   defaults:

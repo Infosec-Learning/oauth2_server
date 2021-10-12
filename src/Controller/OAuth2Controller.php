@@ -63,6 +63,8 @@ class OAuth2Controller extends ControllerBase {
    *   The oauth2 storage service.
    * @param \Drupal\Core\State\State $state
    *   The state service.
+   * @param \Drupal\Core\PrivateKey $private_key
+   *   The private key service.
    * @param \Drupal\Core\Logger\LoggerChannelFactory $logger_factory
    *   The logger factory service.
    */
@@ -298,6 +300,46 @@ class OAuth2Controller extends ControllerBase {
     $response = new BridgeResponse();
     $oauth2_server = Utility::startServer($server, $this->storage);
     $oauth2_server->handleUserInfoRequest($bridgeRequest, $response);
+    return $response;
+  }
+
+  /**
+   * Revoke.
+   *
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The route match service.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request object.
+   *
+   * @return \OAuth2\HttpFoundationBridge\Response
+   *   A response object.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  public function revoke(RouteMatchInterface $route_match, Request $request) {
+    $bridgeRequest = BridgeRequest::createFromRequest($request);
+    $client_credentials = Utility::getClientCredentials($bridgeRequest);
+
+    // Get the client and use it to load the server and initialize the server.
+    $client = FALSE;
+    if ($client_credentials) {
+      /** @var \Drupal\oauth2_server\ClientInterface[] $clients */
+      $clients = $this->entityTypeManager()->getStorage('oauth2_server_client')
+        ->loadByProperties(['client_id' => $client_credentials['client_id']]);
+      if ($clients) {
+        $client = reset($clients);
+      }
+    }
+
+    $server = NULL;
+    if ($client) {
+      $server = $client->getServer();
+    }
+
+    $response = new BridgeResponse();
+    $oauth2_server = Utility::startServer($server, $this->storage);
+    $oauth2_server->handleRevokeRequest($bridgeRequest, $response);
     return $response;
   }
 
